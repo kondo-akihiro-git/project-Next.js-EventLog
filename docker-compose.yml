@@ -1,0 +1,11 @@
+version: '3.9'
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app    # ホストのファイルをコンテナに反映
+      - /app/node_modules  # node_modules はホストに干渉されないよう分離
+    environment:
+      - NODE_ENV=development
