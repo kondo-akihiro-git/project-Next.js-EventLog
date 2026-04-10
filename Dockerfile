@@ -1,12 +1,15 @@
-# ベースイメージ
-FROM node:20-alpine
+# FROM node:20-slim
 
-# 作業ディレクトリ
-WORKDIR /app
+# WORKDIR /app
 
-# パッケージを先にコピーしてインストール（ビルド高速化）
-COPY package*.json ./
-RUN npm install
+# # 👇 OpenSSL入れる（Debian用）
+# RUN apt-get update && apt-get install -y openssl
 
-# デフォルトコマンド（開発サーバー起動）
-CMD ["npm", "run", "dev"]
+# COPY package*.json ./
+# RUN npm install
+
+# COPY . .
+
+# RUN npx prisma generate
+
+# CMD ["npm", "run", "dev"]

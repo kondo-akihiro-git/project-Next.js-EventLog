@@ -1,0 +1,30 @@
+// prisma/schema.prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Event {
+  id          String       @id @default(uuid())
+  clubName    String
+  eventName   String
+  ownerName   String
+  eventDate   DateTime
+  createdAt   DateTime     @default(now())
+
+  participants Participant[]
+}
+
+model Participant {
+  id         String    @id @default(uuid())
+  eventId    String
+  userName   String
+  approved   Boolean   @default(false)
+  approvedAt DateTime?
+
+  event Event @relation(fields: [eventId], references: [id])
+}
