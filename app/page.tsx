@@ -11,7 +11,7 @@ export default function HomePage() {
 
       <List>
         <ListItem>
-          <Link href="/admin?key=a9f8d7g6h5" passHref>
+          <Link href="user/admin?key=a9f8d7g6h5" passHref>
             <Button variant="contained" color="primary">
               管理者ページ
             </Button>
@@ -19,7 +19,7 @@ export default function HomePage() {
         </ListItem>
 
         <ListItem>
-          <Link href="/host?key=k2m9n8p7q1" passHref>
+          <Link href="user/host?key=k2m9n8p7q1" passHref>
             <Button variant="contained" color="secondary">
               ホストページ
             </Button>
@@ -27,7 +27,7 @@ export default function HomePage() {
         </ListItem>
 
         <ListItem>
-          <Link href="/manager?key=w3x4y5z6v2" passHref>
+          <Link href="user/manager?key=w3x4y5z6v2" passHref>
             <Button variant="contained" color="success">
               マネージャーページ
             </Button>

@@ -5,15 +5,8 @@ import { useState } from "react";
 import { Box, Typography, TextField, Button, Paper, Stack, Divider } from "@mui/material";
 
 type Participant = {
-  name: string;
+  userName: String;
 };
-
-// テストデータ
-const TEST_PARTICIPANTS: Participant[] = [
-  { name: "山田太郎" },
-  { name: "佐藤花子" },
-  { name: "鈴木一郎" },
-];
 
 export default function ParticipantsPage() {
   const [link, setLink] = useState("");
@@ -22,20 +15,30 @@ export default function ParticipantsPage() {
   // Paperにまとめるテキスト生成（さん付き）
   const getParticipantsText = () => {
     if (!participants) return "";
-    const names = participants.map((p) => `${p.name} さん`).join("\n");
+    const names = participants.map((p) => `${p.userName} さん`).join("\n");
     return `＜参加者＞\n${names}\n`;
   };
 
-  const handleShowParticipants = () => {
-    // 本来はリンクからイベントIDなど取得してAPIで取得
-    setParticipants(TEST_PARTICIPANTS);
-  };
+  const handleShowParticipants = async () => {
+  // リンクからeventIdを抜く想定（仮で固定でもOK）
+  const eventId = link.split("/").pop(); // 仮処理
+
+  if (!eventId) return;
+
+  const data = await fetchParticipants(eventId);
+  setParticipants(data);
+};
 
   const handleCopy = () => {
     const text = getParticipantsText();
     navigator.clipboard.writeText(text);
     alert("参加者一覧をコピーしました");
   };
+
+  const fetchParticipants = async (eventId: string) => {
+  const res = await fetch(`/api/participant/${eventId}`);
+  return res.json();
+};
 
   return (
     <Box sx={{ p: 4}}>
