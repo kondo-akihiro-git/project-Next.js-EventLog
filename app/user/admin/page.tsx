@@ -14,6 +14,8 @@ import {
   Button,
   Stack,
   Paper,
+  Switch,
+  FormControlLabel,
 } from "@mui/material";
 
 type Participant = {
@@ -41,8 +43,6 @@ export default function AdminPage() {
   const rowsPerPage = 10;
 
   const [onlyNoApproved, setOnlyNoApproved] = useState(false);
-
-  // 選択状態（フィルタ関係なく保持）
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   if (key !== process.env.NEXT_PUBLIC_ADMIN_KEY) {
@@ -59,7 +59,6 @@ export default function AdminPage() {
     fetchData();
   }, []);
 
-  // 承認人数
   const enriched = useMemo(() => {
     return events.map((e) => ({
       ...e,
@@ -67,13 +66,11 @@ export default function AdminPage() {
     }));
   }, [events]);
 
-  // フィルタ
   const filtered = useMemo(() => {
     if (!onlyNoApproved) return enriched;
     return enriched.filter((e) => e.approvedCount === 0);
   }, [enriched, onlyNoApproved]);
 
-  // ページング
   const paginated = useMemo(() => {
     const start = page * rowsPerPage;
     return filtered.slice(start, start + rowsPerPage);
@@ -88,13 +85,11 @@ export default function AdminPage() {
 
   const toggleAll = () => {
     const newSet = new Set(selected);
-
     if (isAllSelected) {
       paginated.forEach((e) => newSet.delete(e.id));
     } else {
       paginated.forEach((e) => newSet.add(e.id));
     }
-
     setSelected(newSet);
   };
 
@@ -114,7 +109,6 @@ export default function AdminPage() {
     )} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
   };
 
-  // 削除
   const handleDelete = async () => {
     if (selected.size === 0) return;
 
@@ -134,25 +128,42 @@ export default function AdminPage() {
   if (loading) return <p>読み込み中...</p>;
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h5">管理者ページ</Typography>
+    <Box sx={{ p: 2 }}>
+      {/* タイトル（線） */}
+      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+        <Box sx={{ flex: 1, height: "1px", bgcolor: "#ccc" }} />
+        <Typography sx={{ mx: 2 }}>
+          管理者ダッシュボード
+        </Typography>
+        <Box sx={{ flex: 1, height: "1px", bgcolor: "#ccc" }} />
+      </Box>
 
-      <Stack direction="row" spacing={2} sx={{ my: 2 }}>
-        <label>
-          <input
-            type="checkbox"
-            checked={onlyNoApproved}
-            onChange={(e) => {
-              setOnlyNoApproved(e.target.checked);
-              setPage(0);
-            }}
-          />
-          承認なしのみ
-        </label>
+      {/* 操作 */}
+      <Stack
+        direction="row"
+        sx={{
+          mb: 2,
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <FormControlLabel
+          control={
+            <Switch
+              checked={onlyNoApproved}
+              onChange={(e) => {
+                setOnlyNoApproved(e.target.checked);
+                setPage(0);
+              }}
+            />
+          }
+          label="承認人数が0人のイベントのみ表示"
+        />
 
         <Button
           variant="contained"
           color="error"
+          size="small"
           onClick={handleDelete}
           disabled={selected.size === 0}
         >
@@ -160,58 +171,84 @@ export default function AdminPage() {
         </Button>
       </Stack>
 
-      <Paper>
-        <Table sx={{ tableLayout: "fixed", width: "100%" }}>
-          <TableHead>
-            <TableRow>
-              <TableCell width="10%">
-                <Checkbox
-                  checked={isAllSelected}
-                  indeterminate={isIndeterminate}
-                  onChange={toggleAll}
-                />
-              </TableCell>
+      {/* テーブル */}
+      <Box sx={{ overflowX: "auto" }}>
+        <Box sx={{ minWidth: "max-content" }}>
+          <Paper elevation={3} sx={{ borderRadius: 2 }}>
+            <Table
+              sx={{
+                borderCollapse: "collapse",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <TableHead>
+                <TableRow>
+                  {["", "日付", "同好会", "イベント名", "作成者", "承認人数"].map(
+                    (h, i) => (
+                      <TableCell
+                        key={i}
+                        sx={{ border: "1px solid #e0e0e0" }}
+                      >
+                        {h === "" ? (
+                          <Checkbox
+                            checked={isAllSelected}
+                            indeterminate={isIndeterminate}
+                            onChange={toggleAll}
+                          />
+                        ) : (
+                          h
+                        )}
+                      </TableCell>
+                    )
+                  )}
+                </TableRow>
+              </TableHead>
 
-              <TableCell width="18%">日付</TableCell>
-              <TableCell width="18%">同好会</TableCell>
-              <TableCell width="18%">イベント名</TableCell>
-              <TableCell width="18%">作成者</TableCell>
-              <TableCell width="18%">承認人数</TableCell>
-            </TableRow>
-          </TableHead>
+              <TableBody>
+                {paginated.map((e) => (
+                  <TableRow key={e.id} hover selected={selected.has(e.id)}>
+                    <TableCell sx={{ border: "1px solid #e0e0e0" }}>
+                      <Checkbox
+                        checked={selected.has(e.id)}
+                        onChange={() => toggleOne(e.id)}
+                      />
+                    </TableCell>
 
-          <TableBody>
-            {paginated.map((e) => (
-              <TableRow
-                key={e.id}
-                hover
-                selected={selected.has(e.id)}
-                sx={{
-                  backgroundColor:
-                    e.approvedCount === 0 ? "#ffe5e5" : "inherit",
-                }}
-              >
-                <TableCell>
-                  <Checkbox
-                    checked={selected.has(e.id)}
-                    onChange={() => toggleOne(e.id)}
-                  />
-                </TableCell>
+                    <TableCell sx={{ border: "1px solid #e0e0e0" }}>
+                      {formatDate(e.eventDate)}
+                    </TableCell>
+                    <TableCell sx={{ border: "1px solid #e0e0e0" }}>
+                      {e.clubName}
+                    </TableCell>
+                    <TableCell sx={{ border: "1px solid #e0e0e0" }}>
+                      {e.eventName}
+                    </TableCell>
+                    <TableCell sx={{ border: "1px solid #e0e0e0" }}>
+                      {e.ownerName}
+                    </TableCell>
+                    <TableCell sx={{ border: "1px solid #e0e0e0" }}>
+                      {e.approvedCount}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Paper>
+        </Box>
+      </Box>
 
-                <TableCell>{formatDate(e.eventDate)}</TableCell>
-                <TableCell>{e.clubName}</TableCell>
-                <TableCell>{e.eventName}</TableCell>
-                <TableCell>{e.ownerName}</TableCell>
-                <TableCell>{e.approvedCount}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Paper>
-
-      {/* pagination */}
-      <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+      {/* ページング */}
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{
+          mt: 2,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
         <Button
+          size="small"
           disabled={page === 0}
           onClick={() => setPage((p) => Math.max(p - 1, 0))}
         >
@@ -223,6 +260,7 @@ export default function AdminPage() {
         </Typography>
 
         <Button
+          size="small"
           disabled={(page + 1) * rowsPerPage >= filtered.length}
           onClick={() => setPage((p) => p + 1)}
         >

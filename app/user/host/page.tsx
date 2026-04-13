@@ -71,9 +71,15 @@ export default function HostPage() {
 
   return (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        同好会開催者の方へ
-      </Typography>
+      {/* タイトル（線） */}
+      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+        <Box sx={{ flex: 1, height: "1px", bgcolor: "#ccc" }} />
+        <Typography sx={{ mx: 2 }}>
+          同好会開催者の方向けページ
+        </Typography>
+        <Box sx={{ flex: 1, height: "1px", bgcolor: "#ccc" }} />
+      </Box>
+      <Box sx={{ display: "flex", alignItems: "center"}}>こちらの画面でリンクを作成してください。</Box>
 
       <Stack spacing={2} sx={{ mt: 2 }}>
         <TextField
