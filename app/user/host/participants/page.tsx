@@ -1,38 +1,64 @@
-// app/pages/participants/page.tsx
 "use client";
 
 import { useState } from "react";
 import { Box, Typography, TextField, Button, Paper, Stack, Divider } from "@mui/material";
 
 type Participant = {
-  userName: String;
+  userName: string;
+};
+
+type ApiResponse = {
+  event: {
+    ownerName: string;
+  };
+  participants: Participant[];
 };
 
 export default function ParticipantsPage() {
   const [link, setLink] = useState("");
-  const [participants, setParticipants] = useState<Participant[] | null>(null);
+  const [data, setData] = useState<ApiResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Paperにまとめるテキスト生成（さん付き）
   const getParticipantsText = () => {
-    if (!participants) return "";
+    if (!data) return "";
 
-    // ★ 0人の場合
-    if (participants.length === 0) {
-      return `まだどなたも承認しておりません。`;
-    }
+    const { event, participants } = data;
 
-    const names = participants.map((p) => `${p.userName} さん`).join("\n");
-    return `＜参加者＞\n${names}\n`;
+    const ownerLine = `${event.ownerName} さん`;
+
+    const participantLines = participants
+      .map((p) => `${p.userName} さん`)
+      .join("\n");
+
+    return `＜参加者＞\n${ownerLine}\n${participantLines}\n`;
   };
 
   const handleShowParticipants = async () => {
-    // リンクからeventIdを抜く想定（仮で固定でもOK）
-    const eventId = link.split("/").pop(); // 仮処理
-
+    const eventId = link.split("/").pop();
     if (!eventId) return;
 
-    const data = await fetchParticipants(eventId);
-    setParticipants(data);
+    try {
+      setError(null);
+
+      const res = await fetch(`/api/participant/${eventId}`);
+
+      if (!res.ok) {
+        throw new Error("データ取得失敗");
+      }
+
+      const json = await res.json();
+
+      // eventが無いケースも弾く
+      if (!json.event) {
+        throw new Error("イベントが見つかりませんでした");
+      }
+
+      setData(json);
+    } catch (e) {
+      console.error(e);
+      setData(null);
+      setError("データの取得に失敗しました。リンクが正しいか確認してください。");
+    }
   };
 
   const handleCopy = () => {
@@ -41,14 +67,8 @@ export default function ParticipantsPage() {
     alert("参加者一覧をコピーしました");
   };
 
-  const fetchParticipants = async (eventId: string) => {
-    const res = await fetch(`/api/participant/${eventId}`);
-    return res.json();
-  };
-
   return (
     <Box sx={{ p: 4 }}>
-      {/* タイトル（線） */}
       <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
         <Box sx={{ flex: 1, height: "1px", bgcolor: "#ccc" }} />
         <Typography sx={{ mx: 2 }}>
@@ -73,30 +93,37 @@ export default function ParticipantsPage() {
           参加者一覧を表示
         </Button>
 
-        {participants && (
-          <Paper sx={{ p: 2, mt: 2, whiteSpace: "pre-wrap" }}>
-            {participants.length === 0 ? (
-              // ★ 0人の場合
-              <Typography>承認済みの参加者は0人です</Typography>
-            ) : (
-              // ★ 1人以上
-              <>
-                <Typography>以下、承認済みの参加者</Typography>
-                <Divider sx={{ my: 1 }} />
-                <Typography>{getParticipantsText()}</Typography>
-              </>
-            )}
+        {/* ❗ エラー表示 */}
+        {error && (
+          <Typography sx={{ color: "red" }}>
+            ※ {error}
+          </Typography>
+        )}
 
-            {participants && participants.length > 0 && (
-              <Button
-                variant="outlined"
-                sx={{ mt: 1 }}
-                onClick={handleCopy}
-              >
-                コピー
-              </Button>
-            )}
+        {/* 成功時のみ表示 */}
+        {data && (
+          <Paper sx={{ p: 2, mt: 2, whiteSpace: "pre-wrap" }}>
+            <>
+              <Typography>以下、承認済みの参加者</Typography>
+              <Divider sx={{ my: 1 }} />
+              <Typography>{getParticipantsText()}</Typography>
+            </>
+
+            <Button
+              variant="outlined"
+              sx={{ mt: 1 }}
+              onClick={handleCopy}
+            >
+              コピー
+            </Button>
           </Paper>
+        )}
+
+        {/* データなし＆エラーなしの初期状態 */}
+        {!data && !error && (
+          <Typography sx={{ color: "#666" }}>
+            ※ リンクを入力して参加者一覧を取得してください
+          </Typography>
         )}
       </Stack>
     </Box>

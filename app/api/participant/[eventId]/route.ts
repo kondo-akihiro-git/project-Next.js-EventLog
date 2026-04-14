@@ -28,13 +28,22 @@ export async function POST(req: Request) {
   }
 }
 
-// 承認済み参加者一覧取得
+// 承認済み参加者一覧取得 + 開催者情報も取得
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ eventId: string }> }
 ) {
   const { eventId } = await params;
 
+  // ① Event（開催者情報）も一緒に取得
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: {
+      ownerName: true,
+    },
+  });
+
+  // ② 参加者取得
   const participants = await prisma.participant.findMany({
     where: {
       eventId,
@@ -45,5 +54,8 @@ export async function GET(
     },
   });
 
-  return NextResponse.json(participants);
+  return NextResponse.json({
+    event,
+    participants,
+  });
 }
