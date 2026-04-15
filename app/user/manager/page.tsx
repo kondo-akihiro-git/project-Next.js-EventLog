@@ -1,158 +1,8 @@
-// // app/user/manager/page.tsx
-// "use client";
-
-// import { useEffect, useMemo, useState } from "react";
-// import { useSearchParams } from "next/navigation";
-// import {
-//   Box,
-//   Paper,
-//   Table,
-//   TableBody,
-//   TableCell,
-//   TableContainer,
-//   TableHead,
-//   TableRow,
-//   TablePagination,
-//   TextField,
-//   Typography,
-//   Stack,
-// } from "@mui/material";
-
-// type Participant = {
-//   id: string;
-//   userName: string;
-//   approvedAt: string;
-//   event: {
-//     id: string;
-//     eventName: string;
-//     eventDate: string;
-//   };
-// };
-
-// export default function ManagerPage() {
-//   const params = useSearchParams();
-//   const key = params.get("key");
-
-//   const [participants, setParticipants] = useState<Participant[]>([]);
-//   const [loading, setLoading] = useState(true);
-
-//   const [page, setPage] = useState(0);
-//   const [rowsPerPage] = useState(10);
-//   const [filter, setFilter] = useState("");
-
-//   const formatDate = (dateStr: string) => {
-//     const d = new Date(dateStr);
-
-//     const yyyy = d.getFullYear();
-//     const mm = String(d.getMonth() + 1).padStart(2, "0");
-//     const dd = String(d.getDate()).padStart(2, "0");
-
-//     return `${yyyy}/${mm}/${dd}`;
-//   };
-
-//   // 認証
-//   if (key !== process.env.NEXT_PUBLIC_MANAGER_KEY) {
-//     return <h1>アクセス不可</h1>;
-//   }
-
-//   useEffect(() => {
-//     const fetchData = async () => {
-//       const res = await fetch("/api/participant");
-//       const data = await res.json();
-//       setParticipants(data);
-//       setLoading(false);
-//     };
-
-//     fetchData();
-//   }, []);
-
-//   // 🔍 フィルタ処理（名前検索）
-//   const filtered = useMemo(() => {
-//     return participants.filter((p) =>
-//       p.userName.toLowerCase().includes(filter.toLowerCase())
-//     );
-//   }, [participants, filter]);
-
-//   // 📄 ページング
-//   const paginated = useMemo(() => {
-//     const start = page * rowsPerPage;
-//     return filtered.slice(start, start + rowsPerPage);
-//   }, [filtered, page]);
-
-//   if (loading) return <p>読み込み中...</p>;
-
-//   return (
-//     <Box sx={{ p: 3 }}>
-//             {/* タイトル（線） */}
-//       <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-//         <Box sx={{ flex: 1, height: "1px", bgcolor: "#ccc" }} />
-//         <Typography sx={{ mx: 2 }}>
-//           マネージャーの方向けページ
-//         </Typography>
-//         <Box sx={{ flex: 1, height: "1px", bgcolor: "#ccc" }} />
-//       </Box>
-
-//       {/* 🔍 検索 */}
-//       <Stack direction="row" sx={{ mb: 2 }}>
-//         <TextField
-//           label="ユーザー名で検索"
-//           value={filter}
-//           onChange={(e) => {
-//             setFilter(e.target.value);
-//             setPage(0);
-//           }}
-//           fullWidth
-//         />
-//       </Stack>
-
-//       {/* 📊 テーブル */}
-//       <TableContainer component={Paper}>
-//         <Table>
-//           <TableHead>
-//             <TableRow>
-//               <TableCell sx={{ width: "20%" }}>日付</TableCell>
-//               <TableCell sx={{ width: "40%" }}>同好会</TableCell>
-//               <TableCell sx={{ width: "40%" }}>ユーザー</TableCell>
-//             </TableRow>
-//           </TableHead>
-
-//           <TableBody>
-//             {paginated.map((p) => (
-//               <TableRow key={p.id}>
-//                 <TableCell sx={{ width: "20%" }}>
-//                   {formatDate(p.event.eventDate)}
-//                 </TableCell>
-
-//                 <TableCell sx={{ width: "40%" }}>
-//                   {p.event.eventName}
-//                 </TableCell>
-
-//                 <TableCell sx={{ width: "40%" }}>
-//                   {p.userName}
-//                 </TableCell>
-//               </TableRow>
-//             ))}
-//           </TableBody>
-//         </Table>
-//       </TableContainer>
-
-//       {/* 📄 ページネーション */}
-//       <TablePagination
-//         component="div"
-//         count={filtered.length}
-//         page={page}
-//         onPageChange={(_, newPage) => setPage(newPage)}
-//         rowsPerPage={rowsPerPage}
-//         rowsPerPageOptions={[10]}
-//       />
-//     </Box>
-//   );
-// }
-
+// app/user/manager/page.tsx
 "use client";
 
+export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import {
   Box,
   Paper,
@@ -172,86 +22,93 @@ import {
 
 type Participant = {
   id: string;
-  userName: string;
-  approvedAt: string;
+  userName: string; // ← これが「参加者」
+  approvedAt: string | null;
   event: {
-    id: string;
-    eventName: string;
+    clubName: string;   // 同好会名
+    ownerName: string;  // 開催者名
     eventDate: string;
   };
 };
 
 export default function ManagerPage() {
-  const params = useSearchParams();
-  const key = params.get("key");
-
+  const [key, setKey] = useState<string | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [page, setPage] = useState(0);
   const [rowsPerPage] = useState(10);
   const [filter, setFilter] = useState("");
-
-  // ★ 追加：8ヶ月フィルタ
   const [within8Months, setWithin8Months] = useState(false);
 
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${yyyy}/${mm}/${dd}`;
-  };
+  // ✅ key取得
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setKey(params.get("key"));
+  }, []);
 
-  if (key !== process.env.NEXT_PUBLIC_MANAGER_KEY) {
-    return <h1>アクセス不可</h1>;
-  }
-
+  // ✅ データ取得（←ここを上に）
   useEffect(() => {
     const fetchData = async () => {
       const res = await fetch("/api/participant");
       const data = await res.json();
-      setParticipants(data);
+
+      if (Array.isArray(data)) {
+        setParticipants(data);
+      } else if (Array.isArray(data.participants)) {
+        setParticipants(data.participants);
+      } else {
+        console.error("想定外のデータ形式", data);
+        setParticipants([]);
+      }
+
       setLoading(false);
     };
     fetchData();
   }, []);
 
-  // 🔍 フィルタ（名前 + 8ヶ月）
+  // ✅ useMemoも上
   const filtered = useMemo(() => {
-  const now = new Date();
+    const now = new Date();
+    const past = new Date();
+    past.setMonth(past.getMonth() - 8);
 
-  // ★ 過去8ヶ月前
-  const past = new Date();
-  past.setMonth(past.getMonth() - 8);
+    return participants.filter((p) => {
+      const nameMatch =
+  p.userName.toLowerCase().includes(filter.toLowerCase()) ||
+  p.event.ownerName.toLowerCase().includes(filter.toLowerCase());
 
-  return participants.filter((p) => {
-    const nameMatch = p.userName
-      .toLowerCase()
-      .includes(filter.toLowerCase());
+      if (!nameMatch) return false;
 
-    if (!nameMatch) return false;
+      if (!within8Months) return true;
 
-    // ★ トグルOFFならそのまま
-    if (!within8Months) return true;
-
-    const eventDate = new Date(p.event.eventDate);
-
-    // ★ 過去8ヶ月〜現在
-    return eventDate >= past && eventDate <= now;
-  });
-}, [participants, filter, within8Months]);
+      const eventDate = new Date(p.event.eventDate);
+      return eventDate >= past && eventDate <= now;
+    });
+  }, [participants, filter, within8Months]);
 
   const paginated = useMemo(() => {
     const start = page * rowsPerPage;
     return filtered.slice(start, start + rowsPerPage);
   }, [filtered, page]);
 
+  // 🔥 ここから下に条件分岐
+  if (key === null) return <p>読み込み中...</p>;
+
+  if (key !== process.env.NEXT_PUBLIC_MANAGER_KEY) {
+    return <h1>アクセス不可</h1>;
+  }
+
   if (loading) return <p>読み込み中...</p>;
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+  };
+
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* タイトル */}
       <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
         <Box sx={{ flex: 1, height: "1px", bgcolor: "#ccc" }} />
         <Typography sx={{ mx: 2 }}>
@@ -260,14 +117,7 @@ export default function ManagerPage() {
         <Box sx={{ flex: 1, height: "1px", bgcolor: "#ccc" }} />
       </Box>
 
-      {/* ★ 追加：8ヶ月トグル */}
-      <Stack
-        direction="row"
-        sx={{
-          mb: 2,
-          alignItems: "center",
-        }}
-      >
+      <Stack direction="row" sx={{ mb: 2, alignItems: "center" }}>
         <FormControlLabel
           control={
             <Switch
@@ -278,14 +128,13 @@ export default function ManagerPage() {
               }}
             />
           }
-          label="現在から8ヶ月以内のイベントのみ表示"
+          label="現在から過去8ヶ月以内のイベントのみ表示"
         />
       </Stack>
 
-      {/* 🔍 検索 */}
       <Stack direction="row" sx={{ mb: 2 }}>
         <TextField
-          label="ユーザー名で検索"
+          label="名前で検索"
           value={filter}
           onChange={(e) => {
             setFilter(e.target.value);
@@ -295,38 +144,41 @@ export default function ManagerPage() {
         />
       </Stack>
 
-      {/* 📊 テーブル */}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
-            <TableRow>
-              <TableCell sx={{ width: "20%" }}>日付</TableCell>
-              <TableCell sx={{ width: "40%" }}>同好会</TableCell>
-              <TableCell sx={{ width: "40%" }}>ユーザー</TableCell>
-            </TableRow>
-          </TableHead>
+  <TableRow>
+    <TableCell sx={{ width: "25%" }}>日付</TableCell>
+    <TableCell sx={{ width: "25%" }}>同好会名</TableCell>
+    <TableCell sx={{ width: "25%" }}>参加者</TableCell>
+    <TableCell sx={{ width: "25%" }}>開催者名</TableCell>
+  </TableRow>
+</TableHead>
 
           <TableBody>
-            {paginated.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell sx={{ width: "20%" }}>
-                  {formatDate(p.event.eventDate)}
-                </TableCell>
+  {paginated.map((p) => (
+    <TableRow key={p.id}>
+      <TableCell>
+        {formatDate(p.event.eventDate)}
+      </TableCell>
 
-                <TableCell sx={{ width: "40%" }}>
-                  {p.event.eventName}
-                </TableCell>
+      <TableCell>
+        {p.event.clubName}
+      </TableCell>
 
-                <TableCell sx={{ width: "40%" }}>
-                  {p.userName}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
+      <TableCell>
+        {p.userName}
+      </TableCell>
+
+      <TableCell>
+        {p.event.ownerName}
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
         </Table>
       </TableContainer>
 
-      {/* 📄 ページネーション */}
       <TablePagination
         component="div"
         count={filtered.length}

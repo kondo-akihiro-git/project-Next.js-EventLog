@@ -8,13 +8,19 @@ const prisma = new PrismaClient();
 export async function GET() {
   try {
     const participants = await prisma.participant.findMany({
-      include: {
-        event: true, // ← ここ重要（後述）
+  include: {
+    event: {
+      select: {
+        clubName: true,
+        ownerName: true,
+        eventDate: true,
       },
-      orderBy: {
-        approvedAt: "desc",
-      },
-    });
+    },
+  },
+  orderBy: {
+    approvedAt: "desc",
+  },
+});
 
     return NextResponse.json(participants);
   } catch (e) {

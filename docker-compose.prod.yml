@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgres:16
+    container_name: meetup-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: meetuplog
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: meetuplog-web
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@db:5432/meetuplog
+    depends_on:
+      - db
+    command: >
+      sh -c "
+        echo '⏳ DB起動待ち...' &&
+        sleep 5 &&
+        echo '🚀 migrate実行' &&
+        npx prisma migrate deploy &&
+        echo '🚀 Next.js起動' &&
+        npm start
+      "
+
+volumes:
+  db_data:

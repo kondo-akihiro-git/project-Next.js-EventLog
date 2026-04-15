@@ -4,8 +4,7 @@ import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
-import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -15,13 +14,17 @@ import {
   Paper,
   Snackbar,
   Alert,
-  Divider,
 } from "@mui/material";
 import Link from "next/link";
 
 export default function HostPage() {
-  const params = useSearchParams();
-  const key = params.get("key");
+  // ★ keyをクライアントで取得
+  const [key, setKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setKey(params.get("key"));
+  }, []);
 
   const [clubName, setClubName] = useState("");
   const [eventName, setEventName] = useState("");
@@ -39,6 +42,9 @@ export default function HostPage() {
     setSnackbar({ open: true, message, severity });
   };
 
+  // ★ 初回レンダリング対策
+  if (key === null) return <p>読み込み中...</p>;
+
   if (key !== process.env.NEXT_PUBLIC_HOST_KEY) {
     return (
       <Box sx={{ p: 4 }}>
@@ -49,7 +55,7 @@ export default function HostPage() {
     );
   }
 
-  // ★追加：必須チェック
+  // ★必須チェック
   const isValid =
     clubName.trim() !== "" &&
     eventName.trim() !== "" &&
@@ -57,7 +63,6 @@ export default function HostPage() {
     eventDate !== null;
 
   const handleGenerateLink = async () => {
-    // ★追加：未入力チェック
     if (!isValid) {
       showSnackbar("すべての項目を入力してください", "error");
       return;
@@ -77,9 +82,7 @@ export default function HostPage() {
         }),
       });
 
-      if (!res.ok) {
-        throw new Error("保存失敗");
-      }
+      if (!res.ok) throw new Error("保存失敗");
 
       const data = await res.json();
 
@@ -106,7 +109,7 @@ export default function HostPage() {
         showSnackbar("共有しました", "success");
       } else {
         await navigator.clipboard.writeText(link);
-        showSnackbar("共有非対応のためコピーしました", "success");
+        showSnackbar("コピーしました", "success");
       }
     } catch (error) {
       console.error(error);
@@ -130,10 +133,6 @@ export default function HostPage() {
           <Box sx={{ flex: 1, height: "1px", bgcolor: "#ccc" }} />
         </Box>
 
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          こちらの画面でリンクを発行してください。
-        </Box>
-
         <Stack spacing={2} sx={{ mt: 2 }}>
           <TextField
             label="同好会名"
@@ -143,14 +142,14 @@ export default function HostPage() {
           />
 
           <TextField
-            label="開催者名（例：山田太郎）"
+            label="開催者名"
             value={hostName}
             onChange={(e) => setHostName(e.target.value)}
             fullWidth
           />
 
           <TextField
-            label="イベント名（例：勉強会）"
+            label="イベント名"
             value={eventName}
             onChange={(e) => setEventName(e.target.value)}
             fullWidth
@@ -178,7 +177,7 @@ export default function HostPage() {
 
           {link && (
             <>
-              <Paper sx={{ p: 2, mt: 2 }}>
+            <Paper sx={{ p: 2, mt: 2 }}>
                 <Typography sx={{ wordBreak: "break-all" }}>
                   {link}
                 </Typography>
@@ -203,17 +202,13 @@ export default function HostPage() {
                   開催者本人はリンクから承認する必要はありません。
                 </Typography>
 
-                <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                  <Button variant="outlined" size="small" onClick={handleCopy}>
-                    コピー
-                  </Button>
+              <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                <Button variant="outlined" size="small" onClick={handleCopy}>
+                  コピー
+                </Button>
 
-                  <Button variant="outlined" size="small" onClick={handleShare}>
-                    SNSで共有
-                  </Button>
-                </Stack>
-
-              </Paper>
+              </Stack>
+            </Paper>
             </>
           )}
 

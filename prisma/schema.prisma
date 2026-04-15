@@ -20,11 +20,11 @@ model Event {
 }
 
 model Participant {
-  id         String    @id @default(uuid())
+  id         String   @id @default(uuid())
   eventId    String
   userName   String
-  approved   Boolean   @default(false)
+  approved   Boolean  @default(false)
   approvedAt DateTime?
 
-  event Event @relation(fields: [eventId], references: [id])
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }

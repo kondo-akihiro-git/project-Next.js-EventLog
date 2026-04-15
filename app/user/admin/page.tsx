@@ -1,9 +1,8 @@
 // app/user/admin/page.tsx
 "use client";
 
-
+export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import {
   Box,
   Typography,
@@ -18,6 +17,8 @@ import {
   Paper,
   Switch,
   FormControlLabel,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 
 type Participant = {
@@ -35,32 +36,53 @@ type Event = {
 };
 
 export default function AdminPage() {
-  const params = useSearchParams();
-  const key = params.get("key");
-
+  const [key, setKey] = useState<string | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [page, setPage] = useState(0);
   const rowsPerPage = 10;
-
   const [onlyNoApproved, setOnlyNoApproved] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  if (key !== process.env.NEXT_PUBLIC_ADMIN_KEY) {
-    return <h1>アクセス不可</h1>;
-  }
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success" as "success" | "error",
+  });
 
+  const showSnackbar = (message: string, severity: "success" | "error") => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  // key取得
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setKey(params.get("key"));
+  }, []);
+
+  // データ取得
   useEffect(() => {
     const fetchData = async () => {
       const res = await fetch("/api/event");
       const data = await res.json();
-      setEvents(data);
+
+      console.log("APIレスポンス:", data);
+
+      if (Array.isArray(data)) {
+        setEvents(data);
+      } else if (Array.isArray(data.events)) {
+        setEvents(data.events);
+      } else {
+        console.error("想定外のデータ形式", data);
+        setEvents([]);
+      }
+
       setLoading(false);
     };
     fetchData();
   }, []);
 
+  // 🔥 ここ重要：useMemoはreturnより前に置く
   const enriched = useMemo(() => {
     return events.map((e) => ({
       ...e,
@@ -77,6 +99,15 @@ export default function AdminPage() {
     const start = page * rowsPerPage;
     return filtered.slice(start, start + rowsPerPage);
   }, [filtered, page]);
+
+  // ★ ここから条件分岐OK
+  if (key === null) return <p>読み込み中...</p>;
+
+  if (key !== process.env.NEXT_PUBLIC_ADMIN_KEY) {
+    return <h1>アクセス不可</h1>;
+  }
+
+  if (loading) return <p>読み込み中...</p>;
 
   const isAllSelected =
     paginated.length > 0 &&
@@ -114,24 +145,30 @@ export default function AdminPage() {
   const handleDelete = async () => {
     if (selected.size === 0) return;
 
-    await fetch("/api/event", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: Array.from(selected) }),
-    });
+    try {
+      const res = await fetch("/api/event", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: Array.from(selected) }),
+      });
 
-    setEvents((prev) =>
-      prev.filter((e) => !selected.has(e.id))
-    );
+      if (!res.ok) throw new Error("削除失敗");
 
-    setSelected(new Set());
+      setEvents((prev) =>
+        prev.filter((e) => !selected.has(e.id))
+      );
+
+      setSelected(new Set());
+
+      showSnackbar("削除しました", "success");
+    } catch (error) {
+      console.error(error);
+      showSnackbar("削除に失敗しました", "error");
+    }
   };
-
-  if (loading) return <p>読み込み中...</p>;
-
   return (
     <Box sx={{ p: 2 }}>
-      {/* タイトル（線） */}
+      {/* タイトル */}
       <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
         <Box sx={{ flex: 1, height: "1px", bgcolor: "#ccc" }} />
         <Typography sx={{ mx: 2 }}>
@@ -187,10 +224,7 @@ export default function AdminPage() {
                 <TableRow>
                   {["", "日付", "同好会", "イベント名", "作成者", "承認人数"].map(
                     (h, i) => (
-                      <TableCell
-                        key={i}
-                        sx={{ border: "1px solid #e0e0e0" }}
-                      >
+                      <TableCell key={i} sx={{ border: "1px solid #e0e0e0" }}>
                         {h === "" ? (
                           <Checkbox
                             checked={isAllSelected}
@@ -269,6 +303,21 @@ export default function AdminPage() {
           次へ
         </Button>
       </Stack>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
