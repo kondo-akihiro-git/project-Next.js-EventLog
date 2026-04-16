@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 # 以下、プロジェクト固有
+/aws
+awscliv2.zip
+メモ.md
